@@ -1,3 +1,6 @@
+from collections import defaultdict
+
+
 def genAlphabetSet(V = 1):
     start = ord('a')
     end = ord('z')
@@ -12,13 +15,24 @@ def genAlphabetSet(V = 1):
 
     return ans
 
+class NGramCell:
+    dimension = 1
+    parent = None
+
+    def __init__(self, *args, **kwargs):
+        self.dimension = kwargs.pop('dimension', 1)
+        self.parent = kwargs.pop('parent', None)
+        self.nextChar = {}
+        self.count = 0
 
 class NGram:
     def __init__(self, *args, **kwargs):
         self.lan = kwargs.pop("lan")
         self.N = kwargs.pop("N")
         self.V = kwargs.pop('V', 1)
+        self.weight = kwargs.pop("weight", 0)
         self.v = self.V
+        self.firstChar = {}
         if self.V == 4:
             self.v = 3
 
@@ -29,11 +43,38 @@ class NGram:
         splicedInput = self.spliceAndCleanInput(txt)
         input = []
         for element in splicedInput:
-            for i in range(0, len(element)):
-                if i+ self.v <= len(element):
-                    print(element[i:i+self.v])
+            for j in range(0, len(element)):
+                stack = []
+                if element[j] not in self.firstChar:
+                    self.firstChar[element[j]] = NGramCell()
+                stack.append(self.firstChar[element[j]])
+                for i in range(j, min(j+ self.v, len(element))):
+                    stack[-1].count += 1
+
+                    if i + 1 < len(element):
+                        if element[i+1] not in stack[-1].nextChar:
+                            stack[-1].nextChar[element[i+1]] = NGramCell(dimension=stack[-1].dimension+1, parent=stack[-1])
+                        stack.append(stack[-1].nextChar[element[i+1]])
+
+        '''
+        for elem in self.firstChar:
+            print("************")
+            print(elem)
+            print(self.firstChar[elem].count)
+
+            for item in self.firstChar[elem].nextChar:
+                print("!!!!!")
+                print(item)
+                print(self.firstChar[elem].nextChar[item].count)
+                print("!!")
+                for i in self.firstChar[elem].nextChar[item].nextChar:
+                    print(i)
+                    print(self.firstChar[elem].nextChar[item].nextChar[i].count)
+                print("!!!!")
+            print("************")
         
         return
+        '''
 
     def spliceAndCleanInput(self, txt) -> [str]:
         ans = []
@@ -140,11 +181,11 @@ def processLine(stringLine):
     print(txt)
 
 # print(len(genAlphabetSet()))
-nb = NaiveBayerClassifier(V=2)
+nb = NaiveBayerClassifier(V=3)
 with open('training-tweets.txt', encoding="utf8") as f:
     fil = f.read().splitlines()
 
-    for line in fil[:20]:
+    for line in fil[:1]:
         nb.processInputLine(line)
 string = 'E'
 #print(string.isalpha())
