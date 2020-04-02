@@ -226,7 +226,7 @@ class NaiveBayerClassifier(MetaStatistics):
 
         self._precision_per_class = np.zeros(len(self.LANGUAGES))
         self._recall_per_class = np.zeros(len(self.LANGUAGES))
-        self.confusion_matrix = np.full((len(self.LANGUAGES), len(self.LANGUAGES)), 0.0)
+        self.confusion_matrix = np.full((len(self.LANGUAGES), len(self.LANGUAGES)), 0)
 
         self._TP_per_class = np.zeros(len(self.LANGUAGES))
         self._FP_per_class = np.zeros(len(self.LANGUAGES))
@@ -367,6 +367,7 @@ class NaiveBayerClassifier(MetaStatistics):
             self.precision = self._precision_per_class.mean()
             self.recall = self._recall_per_class.mean()
             self.f_measure = self._f_measure_per_class.mean()
+            np.set_printoptions(precision=3, suppress=True)
 
             print("** Overall **")
             print("Accuracy: " + str(self.accuracy))
@@ -389,16 +390,6 @@ class HyperParameterOptimizer:
 
     def __init__(self, *args, **kwargs):
         pass
-
-def processLine(stringLine):
-    lineList = stringLine.split("\t")
-    id = lineList[0]
-    correctLan = lineList[2]
-    txt = lineList[3]
-
-    #print(id)
-    #print(correctLan)
-    #print(txt)
 
 # print(len(genAlphabetSet()))
 if __name__ == "__main__":
