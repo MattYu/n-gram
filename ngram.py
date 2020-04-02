@@ -1,8 +1,8 @@
 from collections import defaultdict
+import numpy as np
 import math as math
-
-from icu import LocalData
-
+import os
+import sys
 
 ISALPHA_VOCABULARY_SIZE = 116766 
 
@@ -94,6 +94,7 @@ class NGram:
             self.weight = newWeight
         splicedInput = self.spliceAndCleanInput(txt)
         totalProbability = 0.0
+        #print(splicedInput)
         self.denominator = None
         for element in splicedInput:
             for j in range(0, len(element)):
@@ -105,7 +106,7 @@ class NGram:
                     if self.denominator == None:
                         self.denominator = 0.0
                         for char in self.matrixRoot.nextChar:
-                            self.denominator += self.firstChar.count
+                            self.denominator += self.matrixRoot.count
                     denominator = self.denominator + self.weight*math.pow(self.vocabulary, self.N)
                     probability = numerator/denominator
                     totalProbability += math.log10(probability)
@@ -127,6 +128,12 @@ class NGram:
   
                         if currentMatrixCell != None:
                             #print(currentMatrixCell.dimension)
+                            #print("********")
+                            
+                            #print(currentMatrixCell.char + "  " + str(currentMatrixCell.count))
+                            #print(currentMatrixCell.parent.char + "  " + str(currentMatrixCell.parent.count))
+                            #print(currentMatrixCell.parent.parent.char + "  " + str(currentMatrixCell.parent.parent.count))
+
                             numerator = currentMatrixCell.count + self.weight*1.0
                             denominator = currentMatrixCell.parent.count + self.weight*math.pow(self.vocabulary, self.N)
                             probability = numerator/denominator
@@ -196,11 +203,13 @@ class MetaStatistics:
     precision = 0.0
     f_measure = 0.0
     beta = 1.0
-    harmonic_mean = []
+
+    _correctDeductionsCount = 0
+    _totalDeductionsCount = 0
 
 class NaiveBayerClassifier(MetaStatistics):
 
-    LANGUAGES = ['eu', 'ca', 'gl', 'es', 'en', 't']
+    LANGUAGES = ['eu', 'ca', 'gl', 'es', 'en', 'pt']
 
 
     def __init__(self, *args, **kwargs):
@@ -210,10 +219,28 @@ class NaiveBayerClassifier(MetaStatistics):
         if "LANGUAGES" in kwargs:
             self.LANGUAGES = kwargs.pop('LANGUAGES')
     
-        self.LanToNGrams= {}
 
+        self.beta = kwargs.pop("beta", 1)
+        self.LanToNGrams= {}
+        self.LanToIndex = {}
+
+        self._precision_per_class = np.zeros(len(self.LANGUAGES))
+        self._recall_per_class = np.zeros(len(self.LANGUAGES))
+        self.confusion_matrix = np.full((len(self.LANGUAGES), len(self.LANGUAGES)), 0.0)
+
+        self._TP_per_class = np.zeros(len(self.LANGUAGES))
+        self._FP_per_class = np.zeros(len(self.LANGUAGES))
+        self._FN_per_class = np.zeros(len(self.LANGUAGES))
+        self._TN_per_class = np.zeros(len(self.LANGUAGES))
+
+        self._f_measure_per_class =  np.zeros(len(self.LANGUAGES))
+
+        index = 0
         for lan in self.LANGUAGES:
+            
             self.LanToNGrams[lan] = NGram(lan = lan, N = self.N, V =self.V, weight = self.weight)
+            self.LanToIndex[lan] = index
+            index +=1
 
     def addTrainingInputLine(self, stringLine):
         lineList = stringLine.split("\t")
@@ -257,19 +284,25 @@ class NaiveBayerClassifier(MetaStatistics):
         
         guesses.sort(key= lambda x: x[1], reverse = True)
 
-
+        guessLan = guesses[0][0] 
         printStr = id + "  " + correctLan + "  " + str(guesses[0][1]) + "  " + guesses[0][0] + "  "
+
+        self._totalDeductionsCount += 1
+
+        guessIndex = self.LanToIndex[guesses[0][0]]
+        realIndex = self.LanToIndex[correctLan]
 
         if guesses[0][0] == correctLan:
             printStr += "correct"
+            self._TP_per_class[guessIndex] += 1
+            self._correctDeductionsCount += 1
         else:
             printStr += "wrong"
-        self.precision += 1
-        if correctLan != guesses[0][0]:
-            #print(guesses)
-            self.recall += 1
-            #print(printStr)
+            self._FP_per_class[guessIndex] += 1
+            self._FN_per_class[realIndex] +=1
 
+        self.confusion_matrix[realIndex, guessIndex] +=1
+        #print(printStr)
 
     def runML(self, fileName, newN= None, newWeight = None, maxLine = None, resetStats = True):
         if resetStats:
@@ -277,8 +310,20 @@ class NaiveBayerClassifier(MetaStatistics):
             self.recall = 0.0
             self.precision = 0.0
             self.f_measure = 0.0
-            self.beta = 1.0
-            self.harmonic_mean = []
+
+            self._correctDeductionsCount = 0
+            self._totalDeductionsCount = 0
+            self._precision_per_class = np.zeros(len(self.LANGUAGES))
+            self._recall_per_class = np.zeros(len(self.LANGUAGES))
+
+            self.confusion_matrix = np.full((len(self.LANGUAGES), len(self.LANGUAGES)), 0.0)
+
+            self._TP_per_class = np.zeros(len(self.LANGUAGES))
+            self._FP_per_class = np.zeros(len(self.LANGUAGES))
+            self._FN_per_class = np.zeros(len(self.LANGUAGES))
+            self._TN_per_class = np.zeros(len(self.LANGUAGES))
+
+            self._f_measure_per_class =  np.zeros(len(self.LANGUAGES))
 
         with open(fileName, encoding="utf8") as f:
             fil = f.read().splitlines()
@@ -288,15 +333,51 @@ class NaiveBayerClassifier(MetaStatistics):
                     try:
                         nb.guessTweetLanguage(line, newN=newN, newWeight=newWeight)
                     except Exception as e:
+                        print("Exception")
                         print(e)
+ 
             else:
                 for line in fil[:min(len(fil), maxLine)]:
                     try:
                         nb.guessTweetLanguage(line,  newN=newN, newWeight=newWeight)
                     except Exception as e:
+                        print("Exception")
                         print(e)
-            print(self.recall)
-            print(self.precision)
+
+            self.accuracy = self._correctDeductionsCount/self._totalDeductionsCount
+
+            # Calculate recall and precision per class
+
+            for i in range(0, len(self.LanToNGrams)):
+                self._recall_per_class[i] = self._TP_per_class[i]/(self._TP_per_class[i] + self._FP_per_class[i])
+                self._precision_per_class[i] =  self._TP_per_class[i]/(self._TP_per_class[i] + self._FN_per_class[i])
+            
+            # Calculating F_measure per class
+
+            for i in range(0, len(self.LanToNGrams)):
+                self._f_measure_per_class[i] = (math.pow(self.beta,2) + 1) * self._recall_per_class[i] * self._precision_per_class[i]/(math.pow(self.beta,2)*self._precision_per_class[i] + self._recall_per_class[i])
+
+            NanIndex = np.isnan(self._f_measure_per_class)
+            self._f_measure_per_class[NanIndex] = 0.0
+            self.precision = self._precision_per_class.mean()
+            self.recall = self._recall_per_class.mean()
+            self.f_measure = self._f_measure_per_class.mean()
+
+            print("** Overall **")
+            print("Accuracy: " + str(self.accuracy))
+            print("Recall: " + str(self.recall))
+            print("Precision: " + str(self.precision))
+            print("F measure: " + str(self.f_measure))
+            print("** Confusion Matrix **")
+            print("Legend: " + str(self.LANGUAGES))
+            print(self.confusion_matrix)
+            print("** Per class data **")
+            print("Precision")
+            print(self._precision_per_class)
+            print("recall")
+            print(self._recall_per_class)
+            print("f-measure")
+            print(self._f_measure_per_class)
 
 class HyperParameterOptimizer:
 # Perform on discrete value sweep using different hyperparameter to optimize the ML model
@@ -316,6 +397,6 @@ def processLine(stringLine):
 
 # print(len(genAlphabetSet()))
 if __name__ == "__main__":
-    nb = NaiveBayerClassifier(N=3, V=4, weight=0.000005, test=False)
+    nb = NaiveBayerClassifier(N=3, V=2, weight=0.000001, test=False)
     nb.trainFromTweets('training-tweets.txt')
     nb.runML('test-tweets-given.txt')
