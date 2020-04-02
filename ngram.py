@@ -254,6 +254,11 @@ class NaiveBayerClassifier(MetaStatistics):
 
         if correctLan in self.LanToNGrams:
             self.LanToNGrams[correctLan].addTrainingInput(txt)
+        else:
+            self.LANGUAGES.append(correctLan)
+            self.LanToNGrams[correctLan] = NGram(lan = correctLan, N = self.N, V =self.V, weight = self.weight)
+            self.LanToNGrams[correctLan].addTrainingInput(txt)
+            self.LanToIndex[correctLan] = len(self.LanToIndex)
 
     def trainFromTweets(self, fileName, maxLine = None):
         with open(fileName, encoding="utf8") as f:
