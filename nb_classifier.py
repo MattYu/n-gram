@@ -116,6 +116,23 @@ class NaiveBayerClassifier(MetaStatistics):
         for lan in self.LANGUAGES:
             self.probability_per_language[self.LanToIndex[lan]] = self.count_per_class[self.LanToIndex[lan]]/self.totalCount
 
+        if self.test:
+            for lan in self.LanToNGrams:
+                stack = []
+                stack.append(self.LanToNGrams[lan].matrixRoot)
+                print("*** Trainingg Ngram for: " + lan)
+                while len(stack) !=0:
+                    current = stack.pop()
+                    printStr = ""
+                    for i in range (0, current.dimension):
+                        printStr += "\t"
+                    printStr += current.char
+                    printStr += " count: " + str(current.count)
+                    print(printStr)
+                    for element in current.nextChar:
+                        if current.nextChar[element].dimension <= self.N:
+                            stack.append(current.nextChar[element])
+
 
     def guessTweetLanguage(self, stringLine, logFile= None, newN= None, newWeight = None):
         lineList = stringLine.split("\t")
@@ -234,6 +251,6 @@ class NaiveBayerClassifier(MetaStatistics):
             print(self._f_measure_per_class)
 
 if __name__ == "__main__":
-    nb = NaiveBayerClassifier(N=3, V=4, weight=0.000000001, test=False)
+    nb = NaiveBayerClassifier(N=3, V=4, weight=0.000000001, test=True)
     nb.trainFromTweets('training-tweets.txt')
     nb.runML('test-tweets-given.txt')
