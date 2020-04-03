@@ -48,6 +48,7 @@ class NGram:
                         if element[i+1] not in currentMatrixCell.nextChar:
                             currentMatrixCell.nextChar[element[i+1]] = NGramCell(char= element[i+1], dimension=currentMatrixCell.dimension+1, parent=currentMatrixCell)
                         currentMatrixCell = currentMatrixCell.nextChar[element[i+1]]
+        '''
         if self.test:
             stack = []
             stack.append(self.matrixRoot)
@@ -64,6 +65,7 @@ class NGram:
                 for element in current.nextChar:
                     if current.nextChar[element].dimension <= self.N:
                         stack.append(current.nextChar[element])
+        '''
 
 
     
