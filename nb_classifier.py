@@ -180,7 +180,8 @@ class NaiveBayerClassifier(MetaStatistics):
             self._FN_per_class[realIndex] +=1
 
         self.confusion_matrix[realIndex, guessIndex] +=1
-        #print(printStr)
+        
+        logFile.write(printStr + '\n')
 
     def runML(self, fileName, newN= None, newWeight = None, maxLine = None, resetStats = True):
         if resetStats:
@@ -203,16 +204,21 @@ class NaiveBayerClassifier(MetaStatistics):
 
             self._f_measure_per_class =  np.zeros(len(self.LANGUAGES))
 
+        if self.V == 4:
+            traceFile = open("trace_myModel.txt", "w", encoding="utf-8")
+        else : 
+            traceFile = open("trace_"+ str(self.V) + "_" + str(self.N) + "_" + str(self.weight) + ".txt", "w", encoding="utf-8")
+            
         with open(fileName, encoding="utf8") as f:
             fil = f.read().splitlines()
 
             if not maxLine:
                 for line in fil:
-                    self.guessTweetLanguage(line, newN=newN, newWeight=newWeight)
+                    self.guessTweetLanguage(line, traceFile, newN=newN, newWeight=newWeight)
  
             else:
                 for line in fil[:min(len(fil), maxLine)]:
-                    self.guessTweetLanguage(line,  newN=newN, newWeight=newWeight)
+                    self.guessTweetLanguage(line, traceFile, newN=newN, newWeight=newWeight)
 
 
             self.accuracy = self._correctDeductionsCount/self._totalDeductionsCount
