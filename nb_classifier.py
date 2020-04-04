@@ -273,17 +273,26 @@ def main(*args):
     key = {}
     for arg in args:
         k = arg.split("=")[0]
-        if k != "D":
-            key[k] = int(arg.split("=")[1])
-        else:
+        if k == "D":
             key[k] = float(arg.split("=")[1])
+        elif k == "TRAIN" or k == "TEST" :
+            key[k] = arg.split("=")[1]
+        else:
+            key[k] = int(arg.split("=")[1])
 
     if key["V"] == 4:
         nb = NaiveBayerClassifier(N=3, V=4, weight= V4_OPTIMAL_WEIGHT,test=True)
     else:
         nb = NaiveBayerClassifier(N=key["N"], V=key["V"], weight=key["D"], test=True)
-    nb.trainFromTweets('training-tweets.txt')
-    nb.runML('test-tweets-given.txt')
+        
+    if "TRAIN" in key: 
+        nb.trainFromTweets(key["TRAIN"])
+    else:
+        nb.trainFromTweets('training-tweets.txt')
+    if "TEST" in key: 
+        nb.runML(key["TEST"])
+    else:
+        nb.runML('test-tweets-given.txt')
 
 if __name__ == "__main__":
     if len(sys.argv) ==2:
@@ -292,5 +301,9 @@ if __name__ == "__main__":
         main(sys.argv[1], sys.argv[2])
     elif  len(sys.argv) ==4:
         main(sys.argv[1], sys.argv[2], sys.argv[3])
+    elif  len(sys.argv) ==5:
+        main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+    elif  len(sys.argv) ==6:
+        main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
     else:
         raise SyntaxError("Exceed maximum arguments")

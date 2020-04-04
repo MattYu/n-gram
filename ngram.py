@@ -121,7 +121,6 @@ class NGram:
 
                             totalProbability += math.log10(probability)
                         
-                        # numerator = 
         return totalProbability
 
 
