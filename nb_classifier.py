@@ -119,6 +119,7 @@ class NaiveBayerClassifier(MetaStatistics):
         for lan in self.LANGUAGES:
             self.probability_per_language[self.LanToIndex[lan]] = self.count_per_class[self.LanToIndex[lan]]/self.totalCount
 
+        '''
         if self.test:
             for lan in self.LanToNGrams:
                 stack = []
@@ -135,6 +136,7 @@ class NaiveBayerClassifier(MetaStatistics):
                     for element in current.nextChar:
                         if current.nextChar[element].dimension <= self.N:
                             stack.append(current.nextChar[element])
+        '''
 
 
     def guessTweetLanguage(self, stringLine, logFile= None, newN= None, newWeight = None):
@@ -163,7 +165,8 @@ class NaiveBayerClassifier(MetaStatistics):
         guesses.sort(key= lambda x: x[1], reverse = True)
 
         guessLan = guesses[0][0] 
-        printStr = id + "  " + correctLan + "  " + str(guesses[0][1]) + "  " + guesses[0][0] + "  "
+        score = "{:.2e}".format(guesses[0][1])
+        printStr = id + "  " + correctLan + "  " + score + "  " + guessLan + "  "
 
         self._totalDeductionsCount += 1
 
@@ -180,7 +183,9 @@ class NaiveBayerClassifier(MetaStatistics):
             self._FN_per_class[realIndex] +=1
 
         self.confusion_matrix[realIndex, guessIndex] +=1
-        #print(printStr)
+        
+        if self.test:
+            logFile.write(printStr + '\n')
 
     def runML(self, fileName, newN= None, newWeight = None, maxLine = None, resetStats = True):
         if resetStats:
@@ -203,16 +208,27 @@ class NaiveBayerClassifier(MetaStatistics):
 
             self._f_measure_per_class =  np.zeros(len(self.LANGUAGES))
 
+        if self.test:
+            if self.V == 3:
+                traceFile = open("trace_myModel.txt", "w", encoding="utf-8")
+                evalFile = open("eval_myModel.txt", "w", encoding="utf-8")
+            else : 
+                traceFile = open("trace_"+ str(self.V) + "_" + str(self.N) + "_" + str(self.weight) + ".txt", "w", encoding="utf-8")
+                evalFile = open("eval_"+ str(self.V) + "_" + str(self.N) + "_" + str(self.weight) + ".txt", "w", encoding="utf-8")
+        else:
+            traceFile = None
+            evalFile = None
+            
         with open(fileName, encoding="utf8") as f:
             fil = f.read().splitlines()
 
             if not maxLine:
                 for line in fil:
-                    self.guessTweetLanguage(line, newN=newN, newWeight=newWeight)
+                    self.guessTweetLanguage(line, traceFile, newN=newN, newWeight=newWeight)
  
             else:
                 for line in fil[:min(len(fil), maxLine)]:
-                    self.guessTweetLanguage(line,  newN=newN, newWeight=newWeight)
+                    self.guessTweetLanguage(line, traceFile, newN=newN, newWeight=newWeight)
 
 
             self.accuracy = self._correctDeductionsCount/self._totalDeductionsCount
@@ -238,7 +254,8 @@ class NaiveBayerClassifier(MetaStatistics):
             self.recall = self._recall_per_class.mean()
             self.f_measure = self._f_measure_per_class.mean()
             self.weighted_f_measure = np.average(self._f_measure_per_class, weights=self.probability_per_language)
-            np.set_printoptions(precision=3, suppress=True)
+            np.set_printoptions(precision=4, suppress=True, legacy='1.13')
+            
 
             if self.test:
                 print("** Overall **")
@@ -257,6 +274,17 @@ class NaiveBayerClassifier(MetaStatistics):
                 print(self._recall_per_class)
                 print("f-measure")
                 print(self._f_measure_per_class)
+                
+                evalFile.write(str(round(self.accuracy, 4)) + '\n')
+                str_precision_per_class = np.array2string(self._precision_per_class, precision=4, separator='  ', formatter={'float_kind':lambda x: "%.4f" % x})
+                evalFile.write(str_precision_per_class[1:-1]+ '\n')
+                str_recall_per_class = np.array2string(self._recall_per_class, precision=4, separator='  ', formatter={'float_kind':lambda x: "%.4f" % x})
+                evalFile.write(str_recall_per_class[1:-1]+ '\n')
+                str_f_measure_per_class = np.array2string(self._f_measure_per_class, precision=4, separator='  ', formatter={'float_kind':lambda x: "%.4f" % x})
+                evalFile.write(str_f_measure_per_class[1:-1]+ '\n')
+                evalFile.write(str(round(self.f_measure, 4)) + '  ')
+                evalFile.write(str(round(self.weighted_f_measure, 4)))   
+                evalFile.close()
 
             return {"f_measure": self.f_measure, 
                     "weighted_f_measure": self.weighted_f_measure, 
@@ -273,17 +301,26 @@ def main(*args):
     key = {}
     for arg in args:
         k = arg.split("=")[0]
-        if k != "D":
-            key[k] = int(arg.split("=")[1])
-        else:
+        if k == "D":
             key[k] = float(arg.split("=")[1])
+        elif k == "TRAIN" or k == "TEST" :
+            key[k] = arg.split("=")[1]
+        else:
+            key[k] = int(arg.split("=")[1])
 
     if key["V"] == 3:
         nb = NaiveBayerClassifier(N=3, V=3, weight= V3_OPTIMAL_WEIGHT,test=True)
     else:
         nb = NaiveBayerClassifier(N=key["N"], V=key["V"], weight=key["D"], test=True)
-    nb.trainFromTweets('training-tweets.txt')
-    nb.runML('test-tweets-given.txt')
+        
+    if "TRAIN" in key: 
+        nb.trainFromTweets(key["TRAIN"])
+    else:
+        nb.trainFromTweets('training-tweets.txt')
+    if "TEST" in key: 
+        nb.runML(key["TEST"])
+    else:
+        nb.runML('test-tweets-given.txt')
 
 if __name__ == "__main__":
     if len(sys.argv) ==2:
@@ -292,5 +329,9 @@ if __name__ == "__main__":
         main(sys.argv[1], sys.argv[2])
     elif  len(sys.argv) ==4:
         main(sys.argv[1], sys.argv[2], sys.argv[3])
+    elif  len(sys.argv) ==5:
+        main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+    elif  len(sys.argv) ==6:
+        main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
     else:
         raise SyntaxError("Exceed maximum arguments")
