@@ -14,7 +14,7 @@ class HyperParameterOptimizer:
 
     MAX_N = 3
     MAX_WEIGHT = 1
-    MAX_V = 4
+    MAX_V = 3
 
     EPSILON = 0.0001
 
@@ -23,7 +23,7 @@ class HyperParameterOptimizer:
 
         self.stats = {}
 
-        for i in range(1, self.MAX_V + 1):
+        for i in range(0, self.MAX_V + 1):
             self.VtoClassifer[i] = NaiveBayerClassifier(N=self.MAX_N, V=i, weight=self.MAX_WEIGHT, test=False)
         
     

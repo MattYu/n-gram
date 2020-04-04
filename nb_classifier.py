@@ -2,7 +2,7 @@ from collections import defaultdict
 import numpy as np
 import math as math
 import sys
-from util import V4_OPTIMAL_WEIGHT
+from util import V3_OPTIMAL_WEIGHT
 from ngram import NGram
 
 class MetaStatistics:
@@ -47,7 +47,7 @@ class NaiveBayerClassifier(MetaStatistics):
     def __init__(self, *args, **kwargs):
         super(NaiveBayerClassifier, self).__init__(*args, **kwargs)
         self.N = kwargs.pop('N', 3)
-        self.V = kwargs.pop('V', 1)
+        self.V = kwargs.pop('V', 0)
         self.weight = kwargs.pop("weight", 0.001)
     
         self.LanToNGrams= {}
@@ -295,8 +295,8 @@ def main(*args):
         else:
             key[k] = int(arg.split("=")[1])
 
-    if key["V"] == 4:
-        nb = NaiveBayerClassifier(N=3, V=4, weight= V4_OPTIMAL_WEIGHT,test=True)
+    if key["V"] == 3:
+        nb = NaiveBayerClassifier(N=3, V=3, weight= V3_OPTIMAL_WEIGHT,test=True)
     else:
         nb = NaiveBayerClassifier(N=key["N"], V=key["V"], weight=key["D"], test=True)
         
