@@ -20,16 +20,16 @@ def getLocalChar():
 
     return res
 
-def genAlphabetSet(V = 1):
+def genAlphabetSet(V = 0):
     start = ord('a')
     end = ord('z')
     ans = set()
     for i in range(start, end+1):
         ans.add(chr(i))
-    if V == 4:
+    if V == 3:
         for char in getLocalChar():
             ans.add(char)
-    if V == 2:
+    if V == 1:
         start = ord('A')
         end = ord('Z')
         for i in range(start, end+1):

@@ -1,7 +1,7 @@
 from collections import defaultdict
 import numpy as np
 import math as math
-from util import genAlphabetSet, ISALPHA_VOCABULARY_SIZE, V4_OPTIMAL_WEIGHT
+from util import genAlphabetSet, ISALPHA_VOCABULARY_SIZE, V3_OPTIMAL_WEIGHT
 
 class NGramCell:
     dimension = 1
@@ -18,20 +18,20 @@ class NGram:
     def __init__(self, *args, **kwargs):
         self.lan = kwargs.pop("lan")
         self.N = kwargs.pop("N", 3)
-        self.V = kwargs.pop('V', 1)
+        self.V = kwargs.pop('V', 0)
         self.weight = kwargs.pop("weight", 0.001)
         self.matrixRoot = NGramCell(dimension=0)
         self.denominator = None
         self.test = kwargs.pop("test", False)
 
-        if self.V == 4:
-            self.weight = V4_OPTIMAL_WEIGHT
+        if self.V == 3:
+            self.weight = V3_OPTIMAL_WEIGHT
 
-        if self.V == 1 or self.V == 2 or self.V == 4:
+        if self.V == 0 or self.V == 1 or self.V == 3:
             self.legalCharSet = genAlphabetSet(self.V)
             self.vocabulary = len(self.legalCharSet)
 
-        if self.V == 3:
+        if self.V == 2:
             self.vocabulary = ISALPHA_VOCABULARY_SIZE
 
     def addTrainingInput(self, txt):
@@ -87,10 +87,10 @@ class NGram:
 
     def spliceAndCleanInput(self, txt) -> [str]:
         ans = []
-        if self.V == 1:
+        if self.V == 0:
             txt = txt.lower()
 
-        if self.V == 4:
+        if self.V == 3:
             txt = txt.lower()
             txt = txt.split(" ")
             temp = []
@@ -105,7 +105,7 @@ class NGram:
         start = 0
 
         for i in range (0, len(txt)):
-            if (self.V == 1 or self.V == 2 or self.V == 4):
+            if (self.V == 0 or self.V == 1 or self.V == 3):
                 if str(txt[i]) not in self.legalCharSet:
                     word = txt[start:i]
 
@@ -114,7 +114,7 @@ class NGram:
                     
                     start = i+1
 
-            if (self.V == 3):
+            if (self.V == 2):
                 if not txt[i].isalpha():
                     word = txt[start:i]
 
