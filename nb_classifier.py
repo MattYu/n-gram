@@ -1,10 +1,13 @@
 from collections import defaultdict
 import numpy as np
 import math as math
-
+import sys
+from util import V4_OPTIMAL_WEIGHT
 from ngram import NGram
 
 class MetaStatistics:
+
+    LANGUAGES = ['eu', 'ca', 'gl', 'es', 'en', 'pt']
 
     accuracy = 0.0
     recall = 0.0
@@ -16,21 +19,10 @@ class MetaStatistics:
     _correctDeductionsCount = 0
     _totalDeductionsCount = 0
 
-class NaiveBayerClassifier(MetaStatistics):
-
-    LANGUAGES = ['eu', 'ca', 'gl', 'es', 'en', 'pt']
-
     def __init__(self, *args, **kwargs):
-        self.N = kwargs.pop('N', 3)
-        self.V = kwargs.pop('V', 1)
-        self.weight = kwargs.pop("weight", 0.001)
         if "LANGUAGES" in kwargs:
             self.LANGUAGES = kwargs.pop('LANGUAGES')
-    
-
         self.beta = kwargs.pop("beta", 1)
-        self.LanToNGrams= {}
-        self.LanToIndex = {}
         self.test = kwargs.pop("test", False)
 
         self._precision_per_class = np.zeros(len(self.LANGUAGES))
@@ -49,6 +41,17 @@ class NaiveBayerClassifier(MetaStatistics):
         self.totalCount = 0
 
         self.probability_per_language = np.zeros(len(self.LANGUAGES))
+
+class NaiveBayerClassifier(MetaStatistics):
+
+    def __init__(self, *args, **kwargs):
+        super(NaiveBayerClassifier, self).__init__(*args, **kwargs)
+        self.N = kwargs.pop('N', 3)
+        self.V = kwargs.pop('V', 1)
+        self.weight = kwargs.pop("weight", 0.001)
+    
+        self.LanToNGrams= {}
+        self.LanToIndex = {}
 
         index = 0
         for lan in self.LANGUAGES:
@@ -205,11 +208,11 @@ class NaiveBayerClassifier(MetaStatistics):
 
             if not maxLine:
                 for line in fil:
-                    nb.guessTweetLanguage(line, newN=newN, newWeight=newWeight)
+                    self.guessTweetLanguage(line, newN=newN, newWeight=newWeight)
  
             else:
                 for line in fil[:min(len(fil), maxLine)]:
-                    nb.guessTweetLanguage(line,  newN=newN, newWeight=newWeight)
+                    self.guessTweetLanguage(line,  newN=newN, newWeight=newWeight)
 
 
             self.accuracy = self._correctDeductionsCount/self._totalDeductionsCount
@@ -217,13 +220,17 @@ class NaiveBayerClassifier(MetaStatistics):
             # Calculate recall and precision per class
 
             for i in range(0, len(self.LanToNGrams)):
-                self._recall_per_class[i] = self._TP_per_class[i]/(self._TP_per_class[i] + self._FP_per_class[i])
+                denominator = (self._TP_per_class[i] + self._FP_per_class[i])
+                if denominator != 0.0:
+                    self._recall_per_class[i] = self._TP_per_class[i]/(self._TP_per_class[i] + self._FP_per_class[i])
                 self._precision_per_class[i] =  self._TP_per_class[i]/(self._TP_per_class[i] + self._FN_per_class[i])
             
             # Calculating F_measure per class
 
             for i in range(0, len(self.LanToNGrams)):
-                self._f_measure_per_class[i] = (math.pow(self.beta,2) + 1) * self._recall_per_class[i] * self._precision_per_class[i]/(math.pow(self.beta,2)*self._precision_per_class[i] + self._recall_per_class[i])
+                denominator = (math.pow(self.beta,2)*self._precision_per_class[i] + self._recall_per_class[i])
+                if denominator != 0.0:
+                    self._f_measure_per_class[i] = (math.pow(self.beta,2) + 1) * self._recall_per_class[i] * self._precision_per_class[i]/(math.pow(self.beta,2)*self._precision_per_class[i] + self._recall_per_class[i])
 
             NanIndex = np.isnan(self._f_measure_per_class)
             self._f_measure_per_class[NanIndex] = 0.0
@@ -233,24 +240,57 @@ class NaiveBayerClassifier(MetaStatistics):
             self.weighted_f_measure = np.average(self._f_measure_per_class, weights=self.probability_per_language)
             np.set_printoptions(precision=3, suppress=True)
 
-            print("** Overall **")
-            print("Accuracy: " + str(self.accuracy))
-            print("Recall: " + str(self.recall))
-            print("Precision: " + str(self.precision))
-            print("F measure: " + str(self.f_measure))
-            print("Weighted F measure: " + str(self.weighted_f_measure))
-            print("** Confusion Matrix **")
-            print("Legend: " + str(self.LANGUAGES))
-            print(self.confusion_matrix)
-            print("** Per class data **")
-            print("Precision")
-            print(self._precision_per_class)
-            print("recall")
-            print(self._recall_per_class)
-            print("f-measure")
-            print(self._f_measure_per_class)
+            if self.test:
+                print("** Overall **")
+                print("Accuracy: " + str(self.accuracy))
+                print("Recall: " + str(self.recall))
+                print("Precision: " + str(self.precision))
+                print("F measure: " + str(self.f_measure))
+                print("Weighted F measure: " + str(self.weighted_f_measure))
+                print("** Confusion Matrix **")
+                print("Legend: " + str(self.LANGUAGES))
+                print(self.confusion_matrix)
+                print("** Per class data **")
+                print("Precision")
+                print(self._precision_per_class)
+                print("recall")
+                print(self._recall_per_class)
+                print("f-measure")
+                print(self._f_measure_per_class)
 
-if __name__ == "__main__":
-    nb = NaiveBayerClassifier(N=3, V=4, weight=0.000000001, test=True)
+            return {"f_measure": self.f_measure, 
+                    "weighted_f_measure": self.weighted_f_measure, 
+                    "accuracy": self.accuracy, 
+                    "recall": self.recall, 
+                    "precision": self.precision, 
+                    "confusion_matrix": self.confusion_matrix,
+                    "precision_per_class": self._precision_per_class,
+                    "recall_per_class": self._recall_per_class,
+                    "f_measure_per_class": self._f_measure_per_class}
+
+
+def main(*args):
+    key = {}
+    for arg in args:
+        k = arg.split("=")[0]
+        if k != "D":
+            key[k] = int(arg.split("=")[1])
+        else:
+            key[k] = float(arg.split("=")[1])
+
+    if key["V"] == 4:
+        nb = NaiveBayerClassifier(N=3, V=4, weight= V4_OPTIMAL_WEIGHT,test=True)
+    else:
+        nb = NaiveBayerClassifier(N=key["N"], V=key["V"], weight=key["D"], test=True)
     nb.trainFromTweets('training-tweets.txt')
     nb.runML('test-tweets-given.txt')
+
+if __name__ == "__main__":
+    if len(sys.argv) ==2:
+        main(sys.argv[1])
+    elif len(sys.argv) ==3:
+        main(sys.argv[1], sys.argv[2])
+    elif  len(sys.argv) ==4:
+        main(sys.argv[1], sys.argv[2], sys.argv[3])
+    else:
+        raise SyntaxError("Exceed maximum arguments")

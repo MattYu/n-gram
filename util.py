@@ -1,5 +1,7 @@
 ISALPHA_VOCABULARY_SIZE = 116766 
 
+V4_OPTIMAL_WEIGHT = 9e-06
+
 def getLocalChar():
     res = ""
     res += "àèéëïĳ"
