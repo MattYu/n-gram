@@ -278,7 +278,7 @@ def main(*args):
         else:
             key[k] = float(arg.split("=")[1])
 
-    if key["V"] == 4:
+    if key["V"] == 3:
         nb = NaiveBayerClassifier(N=3, V=3, weight= V3_OPTIMAL_WEIGHT,test=True)
     else:
         nb = NaiveBayerClassifier(N=key["N"], V=key["V"], weight=key["D"], test=True)
