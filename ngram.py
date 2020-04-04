@@ -1,7 +1,7 @@
 from collections import defaultdict
 import numpy as np
 import math as math
-from util import genAlphabetSet, ISALPHA_VOCABULARY_SIZE
+from util import genAlphabetSet, ISALPHA_VOCABULARY_SIZE, V4_OPTIMAL_WEIGHT
 
 class NGramCell:
     dimension = 1
@@ -17,16 +17,15 @@ class NGramCell:
 class NGram:
     def __init__(self, *args, **kwargs):
         self.lan = kwargs.pop("lan")
-        self.N = kwargs.pop("N")
+        self.N = kwargs.pop("N", 3)
         self.V = kwargs.pop('V', 1)
         self.weight = kwargs.pop("weight", 0.001)
-        self.n = self.N
         self.matrixRoot = NGramCell(dimension=0)
         self.denominator = None
         self.test = kwargs.pop("test", False)
 
         if self.V == 4:
-            self.v = 3
+            self.weight = V4_OPTIMAL_WEIGHT
 
         if self.V == 1 or self.V == 2 or self.V == 4:
             self.legalCharSet = genAlphabetSet(self.V)
@@ -42,7 +41,7 @@ class NGram:
                 if element[j] not in self.matrixRoot.nextChar:
                     self.matrixRoot.nextChar[element[j]] = NGramCell(char=element[j])
                 currentMatrixCell = self.matrixRoot.nextChar[element[j]]
-                for i in range(j, min(j+ self.n, len(element))):
+                for i in range(j, min(j+ self.N, len(element))):
                     currentMatrixCell.count += 1
                     if i + 1 < len(element):
                         if element[i+1] not in currentMatrixCell.nextChar:
@@ -95,7 +94,7 @@ class NGram:
 
                 if self.N > 1:
                         currentMatrixCell = self.matrixRoot
-                        for i in range(j, j+ self.n):
+                        for i in range(j, j+ self.N):
                             if i < len(element):
                                 if  element[i] not in currentMatrixCell.nextChar:
                                     probability = self.weight*1.0/(self.weight*math.pow(self.vocabulary, self.N))
