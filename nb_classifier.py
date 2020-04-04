@@ -119,6 +119,7 @@ class NaiveBayerClassifier(MetaStatistics):
         for lan in self.LANGUAGES:
             self.probability_per_language[self.LanToIndex[lan]] = self.count_per_class[self.LanToIndex[lan]]/self.totalCount
 
+        '''
         if self.test:
             for lan in self.LanToNGrams:
                 stack = []
@@ -135,6 +136,7 @@ class NaiveBayerClassifier(MetaStatistics):
                     for element in current.nextChar:
                         if current.nextChar[element].dimension <= self.N:
                             stack.append(current.nextChar[element])
+        '''
 
 
     def guessTweetLanguage(self, stringLine, logFile= None, newN= None, newWeight = None):
@@ -182,7 +184,8 @@ class NaiveBayerClassifier(MetaStatistics):
 
         self.confusion_matrix[realIndex, guessIndex] +=1
         
-        logFile.write(printStr + '\n')
+        if self.test:
+            logFile.write(printStr + '\n')
 
     def runML(self, fileName, newN= None, newWeight = None, maxLine = None, resetStats = True):
         if resetStats:
@@ -205,10 +208,15 @@ class NaiveBayerClassifier(MetaStatistics):
 
             self._f_measure_per_class =  np.zeros(len(self.LANGUAGES))
 
-        if self.V == 4:
-            traceFile = open("trace_myModel.txt", "w", encoding="utf-8")
-        else : 
-            traceFile = open("trace_"+ str(self.V) + "_" + str(self.N) + "_" + str(self.weight) + ".txt", "w", encoding="utf-8")
+        if self.test:
+            if self.V == 3:
+                traceFile = open("trace_myModel.txt", "w", encoding="utf-8")
+                evalFile = open("eval_myModel.txt", "w", encoding="utf-8")
+            else : 
+                traceFile = open("trace_"+ str(self.V) + "_" + str(self.N) + "_" + str(self.weight) + ".txt", "w", encoding="utf-8")
+        else:
+            traceFile = None
+            evalFile = None
             
         with open(fileName, encoding="utf8") as f:
             fil = f.read().splitlines()
