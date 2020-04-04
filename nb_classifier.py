@@ -214,6 +214,7 @@ class NaiveBayerClassifier(MetaStatistics):
                 evalFile = open("eval_myModel.txt", "w", encoding="utf-8")
             else : 
                 traceFile = open("trace_"+ str(self.V) + "_" + str(self.N) + "_" + str(self.weight) + ".txt", "w", encoding="utf-8")
+                evalFile = open("eval_"+ str(self.V) + "_" + str(self.N) + "_" + str(self.weight) + ".txt", "w", encoding="utf-8")
         else:
             traceFile = None
             evalFile = None
@@ -253,7 +254,8 @@ class NaiveBayerClassifier(MetaStatistics):
             self.recall = self._recall_per_class.mean()
             self.f_measure = self._f_measure_per_class.mean()
             self.weighted_f_measure = np.average(self._f_measure_per_class, weights=self.probability_per_language)
-            np.set_printoptions(precision=3, suppress=True)
+            np.set_printoptions(precision=4, suppress=True, legacy='1.13')
+            
 
             if self.test:
                 print("** Overall **")
@@ -272,6 +274,17 @@ class NaiveBayerClassifier(MetaStatistics):
                 print(self._recall_per_class)
                 print("f-measure")
                 print(self._f_measure_per_class)
+                
+                evalFile.write(str(round(self.accuracy, 4)) + '\n')
+                np.savetxt(evalFile, self._precision_per_class,  fmt='%.4f', delimiter='  ', newline='  ')
+                evalFile.write('\n')
+                np.savetxt(evalFile, self._recall_per_class,  fmt='%.4f', delimiter='', newline='  ')
+                evalFile.write('\n')
+                np.savetxt(evalFile, self._f_measure_per_class,  fmt='%.4f', delimiter='', newline='  ')
+                evalFile.write('\n')
+                evalFile.write(str(round(self.f_measure, 4)) + '  ')
+                evalFile.write(str(round(self.weighted_f_measure, 4)))   
+                evalFile.close()
 
             return {"f_measure": self.f_measure, 
                     "weighted_f_measure": self.weighted_f_measure, 
