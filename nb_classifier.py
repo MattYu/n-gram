@@ -163,7 +163,8 @@ class NaiveBayerClassifier(MetaStatistics):
         guesses.sort(key= lambda x: x[1], reverse = True)
 
         guessLan = guesses[0][0] 
-        printStr = id + "  " + correctLan + "  " + str(guesses[0][1]) + "  " + guesses[0][0] + "  "
+        score = "{:.2e}".format(guesses[0][1])
+        printStr = id + "  " + correctLan + "  " + score + "  " + guessLan + "  "
 
         self._totalDeductionsCount += 1
 
