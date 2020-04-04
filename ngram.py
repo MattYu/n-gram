@@ -39,34 +39,15 @@ class NGram:
         for element in splicedInput:
             for j in range(0, len(element)):
                 if element[j] not in self.matrixRoot.nextChar:
-                    self.matrixRoot.nextChar[element[j]] = NGramCell(char=element[j])
+                    self.matrixRoot.nextChar[element[j]] = NGramCell(char=element[j], parent=self.matrixRoot)
                 currentMatrixCell = self.matrixRoot.nextChar[element[j]]
+                self.matrixRoot.count +=1
                 for i in range(j, min(j+ self.N, len(element))):
                     currentMatrixCell.count += 1
                     if i + 1 < len(element):
                         if element[i+1] not in currentMatrixCell.nextChar:
                             currentMatrixCell.nextChar[element[i+1]] = NGramCell(char= element[i+1], dimension=currentMatrixCell.dimension+1, parent=currentMatrixCell)
                         currentMatrixCell = currentMatrixCell.nextChar[element[i+1]]
-        '''
-        if self.test:
-            stack = []
-            stack.append(self.matrixRoot)
-            print("*** Traing Ngram for: ")
-            print(splicedInput)
-            while len(stack) !=0:
-                current = stack.pop()
-                printStr = ""
-                for i in range (0, current.dimension):
-                    printStr += "\t"
-                printStr += current.char
-                printStr += " count: " + str(current.count)
-                print(printStr)
-                for element in current.nextChar:
-                    if current.nextChar[element].dimension <= self.N:
-                        stack.append(current.nextChar[element])
-        '''
-
-
     
     def getProbability(self, txt, newN=None, newWeight=None):
         if newN != None:
@@ -75,53 +56,32 @@ class NGram:
             self.weight = newWeight
         splicedInput = self.spliceAndCleanInput(txt)
         totalProbability = 0.0
-        #print(splicedInput)
         self.denominator = None
         for element in splicedInput:
             for j in range(0, len(element)):
-                if self.N == 1:
-                    if element[j] not in self.matrixRoot.nextChar:
-                        numerator = self.weight*1.0
-                    else:
-                        numerator = self.matrixRoot.nextChar[element[j]].count + self.weight*1.0
-                    if self.denominator == None:
-                        self.denominator = 0.0
-                        for char in self.matrixRoot.nextChar:
-                            self.denominator += self.matrixRoot.count
-                    denominator = self.denominator + self.weight*math.pow(self.vocabulary, self.N)
-                    probability = numerator/denominator
-                    totalProbability += math.log10(probability)
-
-                if self.N > 1:
-                        currentMatrixCell = self.matrixRoot
-                        for i in range(j, j+ self.N):
-                            if i < len(element):
-                                if  element[i] not in currentMatrixCell.nextChar:
-                                    probability = self.weight*1.0/(self.weight*math.pow(self.vocabulary, self.N))
-                                    totalProbability += math.log10(probability)
-                                    currentMatrixCell = None
-                                    break
-                                else:
-                                    currentMatrixCell = currentMatrixCell.nextChar[element[i]]
-                            else:
+                if self.N >= 1:
+                    currentMatrixCell = self.matrixRoot
+                    for i in range(j, j+ self.N):
+                        if i < len(element):
+                            if  element[i] not in currentMatrixCell.nextChar:
+                                probability = self.weight*1.0/(self.weight*math.pow(self.vocabulary, self.N))
+                                totalProbability += math.log10(probability)
                                 currentMatrixCell = None
                                 break
-  
-                        if currentMatrixCell != None:
-                            #print(currentMatrixCell.dimension)
-                            #print("********")
-                            
-                            #print(currentMatrixCell.char + "  " + str(currentMatrixCell.count))
-                            #print(currentMatrixCell.parent.char + "  " + str(currentMatrixCell.parent.count))
-                            #print(currentMatrixCell.parent.parent.char + "  " + str(currentMatrixCell.parent.parent.count))
+                            else:
+                                currentMatrixCell = currentMatrixCell.nextChar[element[i]]
+                        else:
+                            currentMatrixCell = None
+                            break
 
-                            numerator = currentMatrixCell.count + self.weight*1.0
-                            denominator = currentMatrixCell.parent.count + self.weight*math.pow(self.vocabulary, self.N)
-                            probability = numerator/denominator
+                    if currentMatrixCell != None:
 
-                            totalProbability += math.log10(probability)
+                        numerator = currentMatrixCell.count + self.weight*1.0
+                        denominator = currentMatrixCell.parent.count + self.weight*math.pow(self.vocabulary, self.N)
+                        probability = numerator/denominator
+
+                        totalProbability += math.log10(probability)
                         
-                        # numerator = 
         return totalProbability
 
 
@@ -162,8 +122,5 @@ class NGram:
                         ans.append(txt[start:i])
                     
                     start = i+1                               
-        #ans.append(txt[start:len(txt)])
-        
-        #print(self.legalCharSet)
-        #print(ans)
+
         return ans
