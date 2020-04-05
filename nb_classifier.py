@@ -254,7 +254,7 @@ class NaiveBayerClassifier(MetaStatistics):
             self.recall = self._recall_per_class.mean()
             self.f_measure = self._f_measure_per_class.mean()
             self.weighted_f_measure = np.average(self._f_measure_per_class, weights=self.probability_per_language)
-            np.set_printoptions(precision=4, suppress=True, legacy='1.13')
+            np.set_printoptions(precision=4, suppress=True)
             
 
             if self.test:
