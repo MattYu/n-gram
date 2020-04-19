@@ -29,10 +29,10 @@ class NGram:
 
         if self.V == 0 or self.V == 1 or self.V == 3:
             self.legalCharSet = genAlphabetSet(self.V)
-            self.vocabulary = len(self.legalCharSet)
+            self.vocabularySize = len(self.legalCharSet)
 
         if self.V == 2:
-            self.vocabulary = ISALPHA_VOCABULARY_SIZE
+            self.vocabularySize = ISALPHA_VOCABULARY_SIZE
 
     def addTrainingInput(self, txt):
         splicedInput = self.spliceAndCleanInput(txt)
@@ -64,7 +64,11 @@ class NGram:
                     for i in range(j, j+ self.N):
                         if i < len(element):
                             if  element[i] not in currentMatrixCell.nextChar:
-                                probability = self.weight*1.0/(self.weight*math.pow(self.vocabulary, self.N))
+                                if currentMatrixCell.parent == None:
+                                    count = currentMatrixCell.count
+                                else:
+                                    count = currentMatrixCell.parent.count 
+                                probability = self.weight*1.0/(count + self.weight*math.pow(self.vocabularySize, self.N-1))
                                 totalProbability += math.log10(probability)
                                 currentMatrixCell = None
                                 break
@@ -77,7 +81,7 @@ class NGram:
                     if currentMatrixCell != None:
 
                         numerator = currentMatrixCell.count + self.weight*1.0
-                        denominator = currentMatrixCell.parent.count + self.weight*math.pow(self.vocabulary, self.N)
+                        denominator = currentMatrixCell.parent.count + self.weight*math.pow(self.vocabularySize, self.N-1)
                         probability = numerator/denominator
 
                         totalProbability += math.log10(probability)
