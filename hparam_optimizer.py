@@ -54,7 +54,14 @@ class HyperParameterOptimizer:
                 multithreadInput.append(newInput)
             print("\t" + indentation + "*** " + str(stats) + " Range [" + str(10/divisor) + ", " + str(1/divisor) + "]")
             print("\t\t" + indentation + "*** Running multiprocess pool...")
+            printResult = []
+
+            
             result = pool.starmap(findHighestFMeasureByWeight, multithreadInput)
+            for n in result:
+                printResult.append(["%.5f" % n[2], n[1]])
+            printResult.sort(key= lambda x: x[1], reverse = True)
+            print("\t\t" + indentation + str(printResult))
             res.extend(result)
             '''
             for i in range(10, 0, -1):

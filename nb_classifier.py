@@ -25,7 +25,7 @@ class MetaStatistics:
         self.beta = kwargs.pop("beta", 1)
         self.test = kwargs.pop("test", False)
 
-        self._precision_per_class = np.zeros(len(self.LANGUAGES))
+        self._precision_per_class = np.ones(len(self.LANGUAGES))
         self._recall_per_class = np.zeros(len(self.LANGUAGES))
         self.confusion_matrix = np.full((len(self.LANGUAGES), len(self.LANGUAGES)), 0)
 
@@ -239,7 +239,14 @@ class NaiveBayerClassifier(MetaStatistics):
                 denominator = (self._TP_per_class[i] + self._FP_per_class[i])
                 if denominator != 0.0:
                     self._recall_per_class[i] = self._TP_per_class[i]/(self._TP_per_class[i] + self._FP_per_class[i])
-                self._precision_per_class[i] =  self._TP_per_class[i]/(self._TP_per_class[i] + self._FN_per_class[i])
+                else:
+                    self._recall_per_class[i] = 1.0
+                    
+                denominator = (self._TP_per_class[i] + self._FN_per_class[i])
+                if denominator != 0.0:                
+                    self._precision_per_class[i] =  self._TP_per_class[i]/(self._TP_per_class[i] + self._FN_per_class[i])
+                else:
+                    self._precision_per_class[i] = 1.0
             
             # Calculating F_measure per class
 
